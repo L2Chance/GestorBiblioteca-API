@@ -1,0 +1,23 @@
+{
+  "name": "gestor_biblioteca_api",
+  "version": "1.0.0",
+  "description": "Sistema para gestionar un servicio de prestación de libros.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/L2Chance/GestorBiblioteca-API.git"
+  },
+  "author": "Perez Lautaro Ivan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/L2Chance/GestorBiblioteca-API/issues"
+  },
+  "homepage": "https://github.com/L2Chance/GestorBiblioteca-API#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
