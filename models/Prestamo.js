@@ -17,6 +17,10 @@ module.exports = (sequelize) => {
         fechaDevolucion: {
             type: DataTypes.DATE,
             allowNull: true
+        },
+        fechaVencimiento: {
+            type: DataTypes.DATE,
+            allowNull: false
         }
     }, {
         tableName: 'Prestamos'
