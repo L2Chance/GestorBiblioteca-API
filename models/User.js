@@ -28,7 +28,11 @@ module.exports = (sequelize) => {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: false,
-        }
+        },
+        fechaFinSancion: {
+        type: DataTypes.DATE,
+        allowNull: true
+}
     });
 
     return User;
