@@ -1,21 +1,34 @@
-// 1. Importa el módulo Express
 const express = require('express');
+// Importa dotenv para cargar el archivo .env
+require('dotenv').config(); 
+const { initializeSequelize } = require('./config/database'); 
+const authRoutes = require('./routes/auth');
+const loanRoutes = require('./routes/loans');
 
-// 2. Crea una instancia de la aplicación Express
+
 const app = express();
+const PORT = 3005;
 
-// 3. Define el puerto a usar, usando una variable de entorno si está disponible
-//    Si no hay una variable de entorno (por ejemplo, en desarrollo), usa 3000 por defecto.
-const PORT = process.env.PORT || 3000;
+app.use(express.json());
 
-// 4. Define una ruta (endpoint) básica
-app.get('/', (req, res) => {
-  // Envía un texto de respuesta al cliente
-  res.send('¡Hola Mundo! Tu API de Gestor de Biblioteca está funcionando.');
-});
+// Función para inicializar la DB y levantar el servidor
+async function startServer() {
+    await initializeSequelize();
 
-// 5. Inicia el servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log('Presiona CTRL+C para detenerlo.');
-});
+    // 1. RUTA DE AUTENTICACIÓN
+    // Todas las rutas dentro de authRoutes tendrán el prefijo /auth
+    app.use('/auth', authRoutes); 
+    app.use('/loans', loanRoutes);
+
+    // 2. OTRAS RUTAS (Libros, Préstamos, etc.)
+    app.get('/', (req, res) => {
+        res.send('API de Gestión de Préstamos (Sequelize y Auth) activa.');
+    });
+
+    // Levantar el servidor Express
+    app.listen(PORT, () => {
+        console.log(`Servidor Express corriendo en http://localhost:${PORT}`);
+    });
+}
+
+startServer();
