@@ -1,5 +1,8 @@
 const { Prestamo, Libro, Socio, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
 
 const manageTransaction = (callback) => sequelize.transaction(callback);
 
@@ -32,22 +35,28 @@ async function registrarPrestamo(socioId, libroId) {
 
         // Crear préstamo
         const nuevoPrestamo = await Prestamo.create({
-        SocioId: socioId,
-        LibroId: libroId,
-        fechaInicio,
-        fechaVencimiento,
-        fechaDevolucion: null,
-        devuelto: false
-    }, { transaction: t });
+            SocioId: socioId,
+            LibroId: libroId,
+            fechaInicio,
+            fechaVencimiento,
+            fechaDevolucion: null,
+            devuelto: false
+        }, { transaction: t });
 
         // Actualizar estado del libro a Prestado
         await libro.update({ estado: 'Prestado' }, { transaction: t });
 
         // Generar acta PDF
-        await nuevoPrestamo.reload({ include: [Libro, Socio], transaction: t }); // incluir datos necesarios
+        await nuevoPrestamo.reload({ 
+            include: [
+                { model: Libro, as: 'libro' }, 
+                { model: Socio, as: 'socio' }
+            ], 
+            transaction: t 
+        });
+
         const rutaPDF = generarActaPrestamo(nuevoPrestamo);
 
-        
         return { prestamo: nuevoPrestamo, actaPDF: rutaPDF };
     });
 }
@@ -56,7 +65,9 @@ async function registrarDevolucion(prestamoId) {
     return manageTransaction(async (t) => {
         const prestamo = await Prestamo.findOne({
             where: { id: prestamoId, devuelto: false },
-            include: [Libro],
+            include: [
+                { model: Libro, as: 'libro' }
+            ],
             transaction: t
         });
         if (!prestamo) throw new Error('Préstamo no encontrado o ya devuelto.');
@@ -66,8 +77,8 @@ async function registrarDevolucion(prestamoId) {
             devuelto: true 
         }, { transaction: t });
 
-        if (prestamo.Libro) {
-            await prestamo.Libro.update({ estado: 'Disponible' }, { transaction: t });
+        if (prestamo.libro) {
+            await prestamo.libro.update({ estado: 'Disponible' }, { transaction: t });
         }
 
         return prestamo;
@@ -75,11 +86,14 @@ async function registrarDevolucion(prestamoId) {
 }
 
 async function generarActaPrestamoExistente(prestamoId) {
-    // Buscar el préstamo con sus relaciones
-    const prestamo = await Prestamo.findByPk(prestamoId, { include: [Libro, Socio] });
+    const prestamo = await Prestamo.findByPk(prestamoId, {
+        include: [
+            { model: Libro, as: 'libro' },
+            { model: Socio, as: 'socio' }
+        ]
+    });
     if (!prestamo) throw new Error('Préstamo no encontrado.');
 
-    // Asegurarnos de que exista la carpeta de actas
     const folder = path.join(__dirname, '../actas');
     if (!fs.existsSync(folder)) fs.mkdirSync(folder);
 
@@ -91,9 +105,9 @@ async function generarActaPrestamoExistente(prestamoId) {
     doc.fontSize(18).text('Acta de Préstamo de Libro', { align: 'center' });
     doc.moveDown();
 
-    doc.fontSize(12).text(`Socio: ${prestamo.Socio.nombre} ${prestamo.Socio.apellido}`);
-    doc.text(`Número de socio: ${prestamo.Socio.numeroSocio}`);
-    doc.text(`Libro: ${prestamo.Libro.titulo} - ${prestamo.Libro.autor}`);
+    doc.fontSize(12).text(`Socio: ${prestamo.socio.nombre} ${prestamo.socio.apellido}`);
+    doc.text(`Número de socio: ${prestamo.socio.numeroSocio}`);
+    doc.text(`Libro: ${prestamo.libro.titulo} - ${prestamo.libro.autor}`);
     doc.text(`Fecha de inicio: ${prestamo.fechaInicio.toLocaleDateString()}`);
     doc.text(`Fecha de vencimiento: ${prestamo.fechaVencimiento.toLocaleDateString()}`);
     if (prestamo.fechaDevolucion) {
@@ -107,24 +121,18 @@ async function generarActaPrestamoExistente(prestamoId) {
     return pdfPath;
 }
 
-
 async function obtenerTodosLosPrestamos() {
-  return await Prestamo.findAll({
-    include: [
-      { model: Libro, attributes: ['titulo', 'autor', 'estado'] },
-      { model: Socio, attributes: ['nombre', 'apellido', 'numeroSocio'] }
-    ],
-    attributes: ['id', 'fechaInicio', 'fechaVencimiento', 'fechaDevolucion', 'devuelto', 'LibroId', 'SocioId'],
-    order: [['fechaInicio', 'DESC']]
-  });
+    return await Prestamo.findAll({
+        include: [
+            { model: Libro, as: 'libro', attributes: ['titulo', 'autor', 'estado'] },
+            { model: Socio, as: 'socio', attributes: ['nombre', 'apellido', 'numeroSocio'] }
+        ],
+        attributes: ['id', 'fechaInicio', 'fechaVencimiento', 'fechaDevolucion', 'devuelto', 'LibroId', 'SocioId'],
+        order: [['fechaInicio', 'DESC']]
+    });
 }
 
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const path = require('path');
-
 function generarActaPrestamo(prestamo) {
-    // Asegurarnos de que exista la carpeta de actas
     const folder = path.join(__dirname, '../actas');
     if (!fs.existsSync(folder)) fs.mkdirSync(folder);
 
@@ -136,9 +144,9 @@ function generarActaPrestamo(prestamo) {
     doc.fontSize(18).text('Acta de Préstamo de Libro', { align: 'center' });
     doc.moveDown();
 
-    doc.fontSize(12).text(`Socio: ${prestamo.Socio.nombre} ${prestamo.Socio.apellido}`);
-    doc.text(`Número de socio: ${prestamo.Socio.numeroSocio}`);
-    doc.text(`Libro: ${prestamo.Libro.titulo} - ${prestamo.Libro.autor}`);
+    doc.fontSize(12).text(`Socio: ${prestamo.socio.nombre} ${prestamo.socio.apellido}`);
+    doc.text(`Número de socio: ${prestamo.socio.numeroSocio}`);
+    doc.text(`Libro: ${prestamo.libro.titulo} - ${prestamo.libro.autor}`);
     doc.text(`Fecha de inicio: ${prestamo.fechaInicio.toLocaleDateString()}`);
     doc.text(`Fecha de vencimiento: ${prestamo.fechaVencimiento.toLocaleDateString()}`);
     doc.moveDown();
@@ -148,7 +156,6 @@ function generarActaPrestamo(prestamo) {
 
     return pdfPath;
 }
-
 
 module.exports = {
     registrarPrestamo,
