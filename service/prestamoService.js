@@ -3,9 +3,6 @@ const { Op } = require('sequelize');
 
 const manageTransaction = (callback) => sequelize.transaction(callback);
 
-// -----------------------------------------------------------
-// Registrar un préstamo (bibliotecario indica socio y libro)
-// -----------------------------------------------------------
 async function registrarPrestamo(socioId, libroId) {
     return manageTransaction(async (t) => {
         const socio = await Socio.findByPk(socioId, { transaction: t });
@@ -31,86 +28,131 @@ async function registrarPrestamo(socioId, libroId) {
         // Calcular fechas
         const fechaInicio = new Date();
         const fechaVencimiento = new Date();
-        fechaVencimiento.setDate(fechaInicio.getDate() + 15); // Préstamo por 15 días
+        fechaVencimiento.setDate(fechaInicio.getDate() + 15);
 
         // Crear préstamo
-        return Prestamo.create({
-            SocioId: socioId,
-            LibroId: libroId,
-            fechaInicio,
-            fechaVencimiento,
-            fechaDevolucion: null
-        }, { transaction: t });
+        const nuevoPrestamo = await Prestamo.create({
+        SocioId: socioId,
+        LibroId: libroId,
+        fechaInicio,
+        fechaVencimiento,
+        fechaDevolucion: null,
+        devuelto: false
+    }, { transaction: t });
+
+        // Actualizar estado del libro a Prestado
+        await libro.update({ estado: 'Prestado' }, { transaction: t });
+
+        // Generar acta PDF
+        await nuevoPrestamo.reload({ include: [Libro, Socio], transaction: t }); // incluir datos necesarios
+        const rutaPDF = generarActaPrestamo(nuevoPrestamo);
+
+        
+        return { prestamo: nuevoPrestamo, actaPDF: rutaPDF };
     });
 }
 
-// -----------------------------------------------------------
-// Registrar la devolución
-// -----------------------------------------------------------
 async function registrarDevolucion(prestamoId) {
     return manageTransaction(async (t) => {
         const prestamo = await Prestamo.findOne({
-            where: { id: prestamoId, fechaDevolucion: null },
+            where: { id: prestamoId, devuelto: false },
+            include: [Libro],
             transaction: t
         });
         if (!prestamo) throw new Error('Préstamo no encontrado o ya devuelto.');
 
-        await prestamo.update({ fechaDevolucion: new Date() }, { transaction: t });
+        await prestamo.update({ 
+            fechaDevolucion: new Date(),
+            devuelto: true 
+        }, { transaction: t });
+
+        if (prestamo.Libro) {
+            await prestamo.Libro.update({ estado: 'Disponible' }, { transaction: t });
+        }
+
         return prestamo;
     });
 }
 
-// -----------------------------------------------------------
-// Verificar préstamos vencidos
-// -----------------------------------------------------------
-async function verificarPrestamosVencidos() {
-    const hoy = new Date();
+async function generarActaPrestamoExistente(prestamoId) {
+    // Buscar el préstamo con sus relaciones
+    const prestamo = await Prestamo.findByPk(prestamoId, { include: [Libro, Socio] });
+    if (!prestamo) throw new Error('Préstamo no encontrado.');
 
-    const prestamosVencidos = await Prestamo.findAll({
-        where: {
-            fechaDevolucion: null,
-            fechaVencimiento: { [Op.lt]: hoy }
-        },
-        include: [{ model: Socio, as: 'socio' }]
-    });
+    // Asegurarnos de que exista la carpeta de actas
+    const folder = path.join(__dirname, '../actas');
+    if (!fs.existsSync(folder)) fs.mkdirSync(folder);
 
-    return prestamosVencidos;
+    const pdfPath = path.join(folder, `acta_prestamo_${prestamo.id}.pdf`);
+    const doc = new PDFDocument();
+
+    doc.pipe(fs.createWriteStream(pdfPath));
+
+    doc.fontSize(18).text('Acta de Préstamo de Libro', { align: 'center' });
+    doc.moveDown();
+
+    doc.fontSize(12).text(`Socio: ${prestamo.Socio.nombre} ${prestamo.Socio.apellido}`);
+    doc.text(`Número de socio: ${prestamo.Socio.numeroSocio}`);
+    doc.text(`Libro: ${prestamo.Libro.titulo} - ${prestamo.Libro.autor}`);
+    doc.text(`Fecha de inicio: ${prestamo.fechaInicio.toLocaleDateString()}`);
+    doc.text(`Fecha de vencimiento: ${prestamo.fechaVencimiento.toLocaleDateString()}`);
+    if (prestamo.fechaDevolucion) {
+        doc.text(`Fecha de devolución: ${prestamo.fechaDevolucion.toLocaleDateString()}`);
+    }
+    doc.moveDown();
+    doc.text('El socio se compromete a devolver el libro en la fecha establecida.', { align: 'justify' });
+
+    doc.end();
+
+    return pdfPath;
 }
 
-// -----------------------------------------------------------
-// Sancionar usuarios automáticamente
-// -----------------------------------------------------------
-async function sancionarUsuariosVencidos() {
-    const prestamosVencidos = await verificarPrestamosVencidos();
 
-    if (prestamosVencidos.length === 0) return [];
-
-    const sancionados = [];
-
-    await manageTransaction(async (t) => {
-        for (const prestamo of prestamosVencidos) {
-            const socio = prestamo.socio;
-
-            if (!socio.estadoSancion) { // Solo sancionar si no estaba sancionado
-                const fechaFinSancion = new Date();
-                fechaFinSancion.setDate(fechaFinSancion.getDate() + 7); // 7 días de sanción
-
-                await socio.update({
-                    estadoSancion: true,
-                    fechaFinSancion
-                }, { transaction: t });
-
-                sancionados.push(socio);
-            }
-        }
-    });
-
-    return sancionados;
+async function obtenerTodosLosPrestamos() {
+  return await Prestamo.findAll({
+    include: [
+      { model: Libro, attributes: ['titulo', 'autor', 'estado'] },
+      { model: Socio, attributes: ['nombre', 'apellido', 'numeroSocio'] }
+    ],
+    attributes: ['id', 'fechaInicio', 'fechaVencimiento', 'fechaDevolucion', 'devuelto', 'LibroId', 'SocioId'],
+    order: [['fechaInicio', 'DESC']]
+  });
 }
+
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
+
+function generarActaPrestamo(prestamo) {
+    // Asegurarnos de que exista la carpeta de actas
+    const folder = path.join(__dirname, '../actas');
+    if (!fs.existsSync(folder)) fs.mkdirSync(folder);
+
+    const pdfPath = path.join(folder, `acta_prestamo_${prestamo.id}.pdf`);
+    const doc = new PDFDocument();
+
+    doc.pipe(fs.createWriteStream(pdfPath));
+
+    doc.fontSize(18).text('Acta de Préstamo de Libro', { align: 'center' });
+    doc.moveDown();
+
+    doc.fontSize(12).text(`Socio: ${prestamo.Socio.nombre} ${prestamo.Socio.apellido}`);
+    doc.text(`Número de socio: ${prestamo.Socio.numeroSocio}`);
+    doc.text(`Libro: ${prestamo.Libro.titulo} - ${prestamo.Libro.autor}`);
+    doc.text(`Fecha de inicio: ${prestamo.fechaInicio.toLocaleDateString()}`);
+    doc.text(`Fecha de vencimiento: ${prestamo.fechaVencimiento.toLocaleDateString()}`);
+    doc.moveDown();
+    doc.text('El socio se compromete a devolver el libro en la fecha establecida.', { align: 'justify' });
+
+    doc.end();
+
+    return pdfPath;
+}
+
 
 module.exports = {
     registrarPrestamo,
     registrarDevolucion,
-    verificarPrestamosVencidos,
-    sancionarUsuariosVencidos
+    obtenerTodosLosPrestamos,
+    generarActaPrestamoExistente
 };
