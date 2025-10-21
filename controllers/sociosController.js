@@ -95,4 +95,29 @@ app.delete('/socios/:id', async (req, res) => {
     }
 });
 
+// -----------------------------------------------------------
+// PUT /socios/:id/sancionar
+// Sancionar o quitar sanción a un socio
+// -----------------------------------------------------------
+app.put('/socios/:id/sancionar', async (req, res) => {
+    try {
+        const socio = await Socio.findByPk(req.params.id);
+        if (!socio) return res.status(404).json({ message: 'Socio no encontrado.' });
+
+        // Recibimos estadoSancion (true/false) y fechaFinSancion opcional
+        const { estadoSancion, fechaFinSancion } = req.body;
+
+        await socio.update({
+            estadoSancion: estadoSancion ?? socio.estadoSancion,
+            fechaFinSancion: fechaFinSancion ?? socio.fechaFinSancion
+        });
+
+        res.status(200).json({ message: `Socio ${estadoSancion ? 'sancionado' : 'habilitado'} con éxito.`, socio });
+    } catch (error) {
+        console.error(error.message);
+        res.status(400).json({ message: error.message });
+    }
+});
+
+
 module.exports = app;
