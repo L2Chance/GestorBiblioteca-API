@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(protect);
 
 // GET /libros → listar todos los libros
-router.get('/libros', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const libros = await Libro.findAll();
     res.status(200).json(libros);
@@ -17,5 +17,6 @@ router.get('/libros', async (req, res) => {
     res.status(500).json({ message: 'Error al obtener libros.' });
   }
 });
+
 
 module.exports = router;
