@@ -1,53 +1,58 @@
 const express = require('express');
 const prestamoService = require('../services/prestamoService');
-const protect = require('../service/authMiddleware'); 
-const router = express.Router();
+const protect = require('../service/authMiddleware'); // middleware del bibliotecario
 
-// Todas las rutas requieren que el usuario esté autenticado
-router.use(protect);
+const app = express();
+app.use(express.json()); // para parsear JSON
+
+// Middleware de autenticación (todas las rutas requieren bibliotecario)
+app.use(protect);
 
 // -----------------------------------------------------------
-// POST /loans
+// POST /prestamos
 // Registrar un nuevo préstamo
 // -----------------------------------------------------------
-router.post('/', async (req, res) => {
+app.post('/prestamos', async (req, res) => {
     try {
-        const prestamo = await prestamoService.registrarPrestamo(req.user.id, req.body.libroId);
+        const { socioId, libroId } = req.body;
+        const prestamo = await prestamoService.registrarPrestamo(socioId, libroId);
         res.status(201).json({ message: 'Préstamo registrado con éxito.', prestamo });
     } catch (error) {
         console.error(error.message);
-        res.status(500).json({ message: error.message });
+        res.status(400).json({ message: error.message });
     }
 });
 
 // -----------------------------------------------------------
-// PUT /loans/:id/devolver
+// PUT /prestamos/:id/devolver
 // Registrar la devolución de un préstamo
 // -----------------------------------------------------------
-router.put('/:id/devolver', async (req, res) => {
+app.put('/prestamos/:id/devolver', async (req, res) => {
     try {
         const prestamo = await prestamoService.registrarDevolucion(req.params.id);
         res.status(200).json({ message: 'Devolución registrada con éxito.', prestamo });
     } catch (error) {
         console.error(error.message);
-        res.status(500).json({ message: error.message });
+        res.status(400).json({ message: error.message });
     }
 });
 
 // -----------------------------------------------------------
-// POST /loans/sancionar
+// POST /prestamos/sancionar
 // Ejecutar sanción automática de usuarios con préstamos vencidos
 // -----------------------------------------------------------
-router.post('/sancionar', async (req, res) => {
+app.post('/prestamos/sancionar', async (req, res) => {
     try {
-        const usuariosSancionados = await prestamoService.sancionarUsuariosVencidos();
+        const sociosSancionados = await prestamoService.sancionarUsuariosVencidos();
         res.status(200).json({
             message: 'Sanción automática ejecutada.',
-            cantidadSancionados: usuariosSancionados.length,
-            usuarios: usuariosSancionados.map(u => ({
-                id: u.id,
-                email: u.email,
-                fechaFinSancion: u.fechaFinSancion
+            cantidadSancionados: sociosSancionados.length,
+            socios: sociosSancionados.map(s => ({
+                id: s.id,
+                nombre: s.nombre,
+                apellido: s.apellido,
+                numeroSocio: s.numeroSocio,
+                fechaFinSancion: s.fechaFinSancion
             }))
         });
     } catch (error) {
@@ -56,4 +61,4 @@ router.post('/sancionar', async (req, res) => {
     }
 });
 
-module.exports = router;
+module.exports = app;

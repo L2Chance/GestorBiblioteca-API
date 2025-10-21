@@ -7,20 +7,18 @@ module.exports = (sequelize) => {
             primaryKey: true,
             autoIncrement: true
         },
-        // idLibro (FK) y idSocio (FK) se crean automáticamente por Sequelize
-
         fechaInicio: {
             type: DataTypes.DATE,
             allowNull: false,
             defaultValue: DataTypes.NOW
         },
-        fechaDevolucion: {
-            type: DataTypes.DATE,
-            allowNull: true
-        },
         fechaVencimiento: {
             type: DataTypes.DATE,
             allowNull: false
+        },
+        fechaDevolucion: {
+            type: DataTypes.DATE,
+            allowNull: true
         }
     }, {
         tableName: 'Prestamos'

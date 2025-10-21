@@ -1,17 +1,18 @@
-const { Prestamo, Libro, User, sequelize } = require('../models');
+const { Prestamo, Libro, Socio, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 const manageTransaction = (callback) => sequelize.transaction(callback);
 
 // -----------------------------------------------------------
-// Registrar un préstamo
+// Registrar un préstamo (bibliotecario indica socio y libro)
 // -----------------------------------------------------------
 async function registrarPrestamo(socioId, libroId) {
     return manageTransaction(async (t) => {
-        const socio = await User.findByPk(socioId, { transaction: t });
+        const socio = await Socio.findByPk(socioId, { transaction: t });
         const libro = await Libro.findByPk(libroId, { transaction: t });
 
         if (!socio) throw new Error('Socio no encontrado.');
+        if (!libro) throw new Error('Libro no encontrado.');
 
         // Levantar sanción si ya expiró
         if (socio.estadoSancion && socio.fechaFinSancion < new Date()) {
@@ -19,7 +20,6 @@ async function registrarPrestamo(socioId, libroId) {
         }
 
         if (socio.estadoSancion) throw new Error('Socio sancionado. No puede solicitar préstamos.');
-        if (!libro) throw new Error('Libro no encontrado.');
 
         // Verificar si el libro ya está prestado
         const prestamoActivo = await Prestamo.findOne({
@@ -71,7 +71,7 @@ async function verificarPrestamosVencidos() {
             fechaDevolucion: null,
             fechaVencimiento: { [Op.lt]: hoy }
         },
-        include: [{ model: User, as: 'socio' }]
+        include: [{ model: Socio, as: 'socio' }]
     });
 
     return prestamosVencidos;
@@ -89,18 +89,18 @@ async function sancionarUsuariosVencidos() {
 
     await manageTransaction(async (t) => {
         for (const prestamo of prestamosVencidos) {
-            const usuario = prestamo.socio;
+            const socio = prestamo.socio;
 
-            if (!usuario.estadoSancion) { // Solo sancionar si no estaba sancionado
+            if (!socio.estadoSancion) { // Solo sancionar si no estaba sancionado
                 const fechaFinSancion = new Date();
                 fechaFinSancion.setDate(fechaFinSancion.getDate() + 7); // 7 días de sanción
 
-                await usuario.update({
+                await socio.update({
                     estadoSancion: true,
                     fechaFinSancion
                 }, { transaction: t });
 
-                sancionados.push(usuario);
+                sancionados.push(socio);
             }
         }
     });
