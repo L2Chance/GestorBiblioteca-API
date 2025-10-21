@@ -12,9 +12,16 @@ app.use(protect);
 // POST /socios
 // Registrar un nuevo socio
 // -----------------------------------------------------------
+// POST /socios
 app.post('/socios', async (req, res) => {
     try {
-        const { nombre, apellido, dni, numeroSocio } = req.body;
+        const { nombre, apellido, dni } = req.body;
+
+        // Generar número de socio automático
+        // Ejemplo: número incremental
+        const count = await Socio.count();
+        const numeroSocio = 1000 + count + 1; // empieza en 1001
+
         const nuevoSocio = await Socio.create({ nombre, apellido, dni, numeroSocio });
         res.status(201).json({ message: 'Socio registrado con éxito.', socio: nuevoSocio });
     } catch (error) {

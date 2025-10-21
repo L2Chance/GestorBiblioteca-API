@@ -13,11 +13,12 @@ async function poblarLibros(busqueda = 'fantasy', cantidad = 10) {
             const autor = item.author_name ? item.author_name[0] : 'Desconocido';
             const isbn = item.isbn ? item.isbn[0] : `ISBN-${Math.random()}`;
             const estado = 'Disponible';
+            const cover_url = item.isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg` : null;
 
             // Evitar duplicados usando ISBN
             await Libro.findOrCreate({
                 where: { ISBN: isbn },
-                defaults: { titulo, autor, estado }
+                defaults: { titulo, autor, estado, cover_url }
             });
         }
 

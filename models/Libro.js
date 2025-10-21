@@ -24,6 +24,10 @@ module.exports = (sequelize) => {
             type: DataTypes.ENUM('Disponible', 'Prestado', 'Baja'),
             defaultValue: 'Disponible',
             allowNull: false
+        },
+        cover_url: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     });
 
