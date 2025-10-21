@@ -34,6 +34,7 @@ async function startServer() {
     // Rutas de autenticación
     // -----------------------------------------------------------
     app.use('/auth', authRoutes);
+    app.use('/bibliotecario', bibliotecarioController);
 
     // -----------------------------------------------------------
     // Rutas de socios
