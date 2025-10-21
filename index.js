@@ -6,6 +6,8 @@ const { initializeSequelize } = require('./config/database');
 const authRoutes = require('./routes/auth'); // si mantenés autenticación del bibliotecario
 const sociosController = require('./controllers/sociosController');
 const prestamosController = require('./controllers/prestamosController');
+const bibliotecarioController = require('./controllers/bibliotecarioController');
+
 
 // Función para poblar libros
 const poblarLibros = require('./scripts/poblarLibros');
