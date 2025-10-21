@@ -98,23 +98,80 @@ async function generarActaPrestamoExistente(prestamoId) {
     if (!fs.existsSync(folder)) fs.mkdirSync(folder);
 
     const pdfPath = path.join(folder, `acta_prestamo_${prestamo.id}.pdf`);
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: 50 });
 
     doc.pipe(fs.createWriteStream(pdfPath));
 
-    doc.fontSize(18).text('Acta de Préstamo de Libro', { align: 'center' });
+    // ------------------- Encabezado -------------------
+    doc
+      .fontSize(22)
+      .fillColor('#1F2937') // color gris oscuro
+      .text('Biblioteca Lecturopolis', { align: 'center' });
+
+    doc.moveDown(0.5);
+    doc
+      .fontSize(18)
+      .fillColor('#0D9488') // teal oscuro
+      .text('Acta de Préstamo de Libro', { align: 'center' });
+
+    doc.moveDown();
+    doc.strokeColor('#0D9488').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
     doc.moveDown();
 
-    doc.fontSize(12).text(`Socio: ${prestamo.socio.nombre} ${prestamo.socio.apellido}`);
+    // ------------------- Datos del Socio -------------------
+    doc
+      .fontSize(14)
+      .fillColor('#111827')
+      .text('Datos del Socio', { underline: true });
+    doc.moveDown(0.3);
+
+    doc.fontSize(12);
+    doc.text(`Nombre: ${prestamo.socio.nombre} ${prestamo.socio.apellido}`);
     doc.text(`Número de socio: ${prestamo.socio.numeroSocio}`);
-    doc.text(`Libro: ${prestamo.libro.titulo} - ${prestamo.libro.autor}`);
+    doc.text(`DNI: ${prestamo.socio.dni || 'N/A'}`);
+    doc.moveDown();
+
+    // ------------------- Datos del Libro -------------------
+    doc
+      .fontSize(14)
+      .fillColor('#111827')
+      .text('Datos del Libro', { underline: true });
+    doc.moveDown(0.3);
+
+    doc.fontSize(12);
+    doc.text(`Título: ${prestamo.libro.titulo}`);
+    doc.text(`Autor: ${prestamo.libro.autor}`);
+    doc.text(`ISBN: ${prestamo.libro.isbn || 'N/A'}`);
+    doc.moveDown();
+
+    // ------------------- Fechas -------------------
+    doc
+      .fontSize(14)
+      .fillColor('#111827')
+      .text('Fechas del Préstamo', { underline: true });
+    doc.moveDown(0.3);
+
+    doc.fontSize(12);
     doc.text(`Fecha de inicio: ${prestamo.fechaInicio.toLocaleDateString()}`);
     doc.text(`Fecha de vencimiento: ${prestamo.fechaVencimiento.toLocaleDateString()}`);
     if (prestamo.fechaDevolucion) {
         doc.text(`Fecha de devolución: ${prestamo.fechaDevolucion.toLocaleDateString()}`);
     }
     doc.moveDown();
-    doc.text('El socio se compromete a devolver el libro en la fecha establecida.', { align: 'justify' });
+
+    // ------------------- Mensaje final -------------------
+    doc
+      .fontSize(12)
+      .fillColor('#064E3B') // verde oscuro
+      .text('El socio se compromete a devolver el libro en la fecha establecida, cuidando su integridad y estado.', { align: 'justify' });
+
+    doc.moveDown(2);
+
+    // ------------------- Pie de página -------------------
+    doc
+      .fontSize(10)
+      .fillColor('#6B7280')
+      .text(`Generado automáticamente por el sistema Lecturopolis | Fecha: ${new Date().toLocaleDateString()}`, { align: 'center' });
 
     doc.end();
 
