@@ -1,13 +1,13 @@
 const express = require('express');
+const cors = require('cors');
 require('dotenv').config(); 
 const { initializeSequelize } = require('./config/database'); 
 
 // Controladores clásicos
-const authRoutes = require('./routes/auth'); // si mantenés autenticación del bibliotecario
+const authRoutes = require('./routes/auth'); 
 const sociosController = require('./controllers/sociosController');
 const prestamosController = require('./controllers/prestamosController');
 const bibliotecarioController = require('./controllers/bibliotecarioController');
-
 
 // Función para poblar libros
 const poblarLibros = require('./scripts/poblarLibros');
@@ -15,6 +15,14 @@ const { Libro, sequelize } = require('./models');
 
 const app = express();
 const PORT = 3005;
+
+// 🔹 Middleware CORS
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+app.use(cors({
+  origin: FRONTEND_URL,
+  credentials: true
+}));
 
 app.use(express.json());
 
@@ -33,24 +41,13 @@ async function startServer() {
     }
 
     // -----------------------------------------------------------
-    // Rutas de autenticación
+    // Rutas
     // -----------------------------------------------------------
     app.use('/auth', authRoutes);
     app.use('/bibliotecario', bibliotecarioController);
-
-    // -----------------------------------------------------------
-    // Rutas de socios
-    // -----------------------------------------------------------
     app.use(sociosController);
-
-    // -----------------------------------------------------------
-    // Rutas de préstamos
-    // -----------------------------------------------------------
     app.use(prestamosController);
 
-    // -----------------------------------------------------------
-    // Ruta base
-    // -----------------------------------------------------------
     app.get('/', (req, res) => {
         res.send('API de Gestión de Préstamos (Sequelize y Auth) activa.');
     });
