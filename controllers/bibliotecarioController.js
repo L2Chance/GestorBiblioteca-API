@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const bibliotecarioService = require('../services/bibliotecarioService');
+const bibliotecarioService = require('../service/bibliotecarioService');
 
 // -----------------------------------------------------------
 // POST /bibliotecario/register
