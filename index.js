@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const sociosController = require('./controllers/sociosController');
 const prestamosController = require('./controllers/prestamosController');
 const bibliotecarioController = require('./controllers/bibliotecarioController');
+const libroController = require('./controllers/librosController');
 
 // Función para poblar libros
 const poblarLibros = require('./scripts/poblarLibros');
@@ -47,6 +48,7 @@ async function startServer() {
     app.use('/bibliotecario', bibliotecarioController);
     app.use(sociosController);
     app.use(prestamosController);
+    app.use('/libros', libroController);
 
     app.get('/', (req, res) => {
         res.send('API de Gestión de Préstamos (Sequelize y Auth) activa.');
