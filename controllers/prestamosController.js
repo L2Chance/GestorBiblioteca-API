@@ -1,5 +1,5 @@
 const express = require('express');
-const prestamoService = require('../services/prestamoService');
+const prestamoService = require('../service/prestamoService');
 const protect = require('../service/authMiddleware'); // middleware del bibliotecario
 
 const app = express();
