@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { Libro, sequelize } = require('../models');
+const { Libro } = require('../models');
 
 async function poblarLibros(busqueda = 'fantasy', cantidad = 10) {
     try {
@@ -7,14 +7,18 @@ async function poblarLibros(busqueda = 'fantasy', cantidad = 10) {
         const response = await axios.get(`https://openlibrary.org/search.json?q=${encodeURIComponent(busqueda)}&limit=${cantidad}`);
         const libros = response.data.docs;
 
-        // 2. Mapear datos a nuestro modelo
+        // 2. Mapear datos a nuestro modelo y evitar duplicados
         for (const item of libros) {
             const titulo = item.title || 'Sin título';
             const autor = item.author_name ? item.author_name[0] : 'Desconocido';
-            const isbn = item.isbn ? item.isbn[0] : `ISBN-${Math.random()}`; // si no hay ISBN, generar uno ficticio
+            const isbn = item.isbn ? item.isbn[0] : `ISBN-${Math.random()}`;
             const estado = 'Disponible';
 
-            await Libro.create({ titulo, autor, ISBN: isbn, estado });
+            // Evitar duplicados usando ISBN
+            await Libro.findOrCreate({
+                where: { ISBN: isbn },
+                defaults: { titulo, autor, estado }
+            });
         }
 
         console.log(`Se poblaron ${libros.length} libros en la base de datos.`);
@@ -23,9 +27,4 @@ async function poblarLibros(busqueda = 'fantasy', cantidad = 10) {
     }
 }
 
-// Inicializar sequelize y ejecutar
-(async () => {
-    await sequelize.sync();
-    await poblarLibros('fantasy', 20); // 20 libros de ejemplo
-    process.exit();
-})();
+module.exports = poblarLibros;
