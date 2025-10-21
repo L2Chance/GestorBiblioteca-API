@@ -3,6 +3,8 @@ const express = require('express');
 require('dotenv').config(); 
 const { initializeSequelize } = require('./config/database'); 
 const authRoutes = require('./routes/auth');
+const bibliotecarioController = require('./controllers/bibliotecarioController');
+
 
 
 const app = express();
@@ -17,6 +19,7 @@ async function startServer() {
     // 1. RUTA DE AUTENTICACIÓN
     // Todas las rutas dentro de authRoutes tendrán el prefijo /auth
     app.use('/auth', authRoutes);
+    app.use('/bibliotecario', bibliotecarioController);
 
     // 2. OTRAS RUTAS (Libros, Préstamos, etc.)
     app.get('/', (req, res) => {

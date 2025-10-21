@@ -3,6 +3,7 @@ const { sequelize, initializeSequelize } = require('../config/database');
 const Libro = require('./Libro')(sequelize);
 const Socio = require('./Socio')(sequelize);
 const Prestamo = require('./Prestamo')(sequelize);
+const Bibliotecario = require('./Bibliotecario')(sequelize);
 
 // Relaciones
 
@@ -14,10 +15,12 @@ Prestamo.belongsTo(Socio, { foreignKey: 'SocioId', as: 'socio' });
 Libro.hasMany(Prestamo, { foreignKey: 'LibroId', as: 'prestamosAsociados' });
 Prestamo.belongsTo(Libro, { foreignKey: 'LibroId', as: 'libro' });
 
+
 module.exports = {
     sequelize,
     initializeSequelize,
     Libro,
     Socio,
-    Prestamo
+    Prestamo,
+    Bibliotecario
 };
