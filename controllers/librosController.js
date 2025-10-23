@@ -11,7 +11,7 @@ const upload = multer({ dest: 'tmp/' });
 // Todas las rutas requieren bibliotecario
 router.use(protect);
 
-router.get('/', async (req, res) => {
+router.get('/libros', async (req, res) => {
   try {
     const libros = await libroService.obtenerTodos();
     res.status(200).json(libros);
@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', upload.single('cover'), async (req, res) => {
+router.post('/libros', upload.single('cover'), async (req, res) => {
   try {
     const libro = await libroService.crearLibro(req.body, req.file);
     res.status(201).json(libro);
@@ -31,7 +31,7 @@ router.post('/', upload.single('cover'), async (req, res) => {
   }
 });
 
-router.put('/:id', upload.single('cover'), async (req, res) => {
+router.put('/libros/:id', upload.single('cover'), async (req, res) => {
   try {
     const libro = await libroService.editarLibro(req.params.id, req.body, req.file);
     res.status(200).json(libro);
@@ -41,7 +41,7 @@ router.put('/:id', upload.single('cover'), async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/libros/:id', async (req, res) => {
   try {
     await libroService.eliminarLibro(req.params.id);
     res.status(200).json({ message: 'Libro eliminado correctamente.' });
