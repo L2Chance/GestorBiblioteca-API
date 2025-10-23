@@ -12,6 +12,7 @@ const libroController = require('./controllers/librosController');
 
 // Función para poblar libros
 const poblarLibros = require('./scripts/poblarLibros');
+const poblarBibliotecario = require('./scripts/poblarBibliotecario');
 const { Libro, sequelize } = require('./models');
 
 const app = express();
@@ -40,6 +41,8 @@ async function startServer() {
         console.log('Base vacía, poblando libros de ejemplo...');
         await poblarLibros('fantasy', 20);
     }
+
+    await poblarBibliotecario();
 
     // -----------------------------------------------------------
     // Rutas
