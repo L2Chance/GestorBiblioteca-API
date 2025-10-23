@@ -4,8 +4,9 @@ const { Libro } = require('../models');
 async function poblarLibros(busqueda = 'fantasy', cantidad = 10) {
   try {
     const response = await axios.get(
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(busqueda)}&limit=${cantidad}`
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(busqueda)}&language=spa&limit=${cantidad}`
     );
+
     const libros = response.data.docs;
 
     for (const item of libros) {
@@ -17,9 +18,9 @@ async function poblarLibros(busqueda = 'fantasy', cantidad = 10) {
       // 🧠 Determinar la mejor URL de cover disponible
       let cover_url = null;
       if (item.cover_i) {
-        cover_url = `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg`;
+        cover_url = `https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`;
       } else if (isbn) {
-        cover_url = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+        cover_url = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
       }
 
       // Evitar duplicados usando ISBN si lo hay, si no, usar título como fallback
