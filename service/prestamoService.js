@@ -4,6 +4,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 
+
 const manageTransaction = (callback) => sequelize.transaction(callback);
 
 async function registrarPrestamo(socioId, libroId) {
@@ -186,8 +187,6 @@ async function generarActaPrestamoExistente(prestamoId) {
 
   return pdfPath;
 }
-
-export default generarActaPrestamoExistente;
 
 async function obtenerTodosLosPrestamos() {
     return await Prestamo.findAll({
