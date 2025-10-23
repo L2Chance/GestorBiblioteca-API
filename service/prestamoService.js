@@ -85,98 +85,109 @@ async function registrarDevolucion(prestamoId) {
     });
 }
 
+
 async function generarActaPrestamoExistente(prestamoId) {
-    const prestamo = await Prestamo.findByPk(prestamoId, {
-        include: [
-            { model: Libro, as: 'libro' },
-            { model: Socio, as: 'socio' }
-        ]
-    });
-    if (!prestamo) throw new Error('Préstamo no encontrado.');
+  const prestamo = await Prestamo.findByPk(prestamoId, {
+    include: [
+      { model: Libro, as: 'libro' },
+      { model: Socio, as: 'socio' }
+    ]
+  });
 
-    const folder = path.join(__dirname, '../actas');
-    if (!fs.existsSync(folder)) fs.mkdirSync(folder);
+  if (!prestamo) throw new Error('Préstamo no encontrado.');
 
-    const pdfPath = path.join(folder, `acta_prestamo_${prestamo.id}.pdf`);
-    const doc = new PDFDocument({ margin: 50 });
+  const folder = path.join(__dirname, '../actas');
+  if (!fs.existsSync(folder)) fs.mkdirSync(folder);
 
-    doc.pipe(fs.createWriteStream(pdfPath));
+  const pdfPath = path.join(folder, `acta_prestamo_${prestamo.id}.pdf`);
+  const doc = new PDFDocument({ margin: 50 });
 
-    // ------------------- Encabezado -------------------
-    doc
-      .fontSize(22)
-      .fillColor('#1F2937') // color gris oscuro
-      .text('Biblioteca Lecturopolis', { align: 'center' });
+  const stream = fs.createWriteStream(pdfPath);
+  doc.pipe(stream);
 
-    doc.moveDown(0.5);
-    doc
-      .fontSize(18)
-      .fillColor('#0D9488') // teal oscuro
-      .text('Acta de Préstamo de Libro', { align: 'center' });
+  // ------------------- Encabezado -------------------
+  doc
+    .fontSize(22)
+    .fillColor('#1F2937')
+    .text('Biblioteca Lecturopolis', { align: 'center' });
 
-    doc.moveDown();
-    doc.strokeColor('#0D9488').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-    doc.moveDown();
+  doc.moveDown(0.5);
+  doc
+    .fontSize(18)
+    .fillColor('#0D9488')
+    .text('Acta de Préstamo de Libro', { align: 'center' });
 
-    // ------------------- Datos del Socio -------------------
-    doc
-      .fontSize(14)
-      .fillColor('#111827')
-      .text('Datos del Socio', { underline: true });
-    doc.moveDown(0.3);
+  doc.moveDown();
+  doc.strokeColor('#0D9488').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+  doc.moveDown();
 
-    doc.fontSize(12);
-    doc.text(`Nombre: ${prestamo.socio.nombre} ${prestamo.socio.apellido}`);
-    doc.text(`Número de socio: ${prestamo.socio.numeroSocio}`);
-    doc.text(`DNI: ${prestamo.socio.dni || 'N/A'}`);
-    doc.moveDown();
+  // ------------------- Datos del Socio -------------------
+  doc
+    .fontSize(14)
+    .fillColor('#111827')
+    .text('Datos del Socio', { underline: true });
+  doc.moveDown(0.3);
 
-    // ------------------- Datos del Libro -------------------
-    doc
-      .fontSize(14)
-      .fillColor('#111827')
-      .text('Datos del Libro', { underline: true });
-    doc.moveDown(0.3);
+  doc.fontSize(12);
+  doc.text(`Nombre: ${prestamo.socio.nombre} ${prestamo.socio.apellido}`);
+  doc.text(`Número de socio: ${prestamo.socio.numeroSocio}`);
+  doc.text(`DNI: ${prestamo.socio.dni || 'N/A'}`);
+  doc.moveDown();
 
-    doc.fontSize(12);
-    doc.text(`Título: ${prestamo.libro.titulo}`);
-    doc.text(`Autor: ${prestamo.libro.autor}`);
-    doc.text(`ISBN: ${prestamo.libro.isbn || 'N/A'}`);
-    doc.moveDown();
+  // ------------------- Datos del Libro -------------------
+  doc
+    .fontSize(14)
+    .fillColor('#111827')
+    .text('Datos del Libro', { underline: true });
+  doc.moveDown(0.3);
 
-    // ------------------- Fechas -------------------
-    doc
-      .fontSize(14)
-      .fillColor('#111827')
-      .text('Fechas del Préstamo', { underline: true });
-    doc.moveDown(0.3);
+  doc.fontSize(12);
+  doc.text(`Título: ${prestamo.libro.titulo}`);
+  doc.text(`Autor: ${prestamo.libro.autor}`);
+  doc.text(`ISBN: ${prestamo.libro.isbn || 'N/A'}`);
+  doc.moveDown();
 
-    doc.fontSize(12);
-    doc.text(`Fecha de inicio: ${prestamo.fechaInicio.toLocaleDateString()}`);
-    doc.text(`Fecha de vencimiento: ${prestamo.fechaVencimiento.toLocaleDateString()}`);
-    if (prestamo.fechaDevolucion) {
-        doc.text(`Fecha de devolución: ${prestamo.fechaDevolucion.toLocaleDateString()}`);
-    }
-    doc.moveDown();
+  // ------------------- Fechas -------------------
+  doc
+    .fontSize(14)
+    .fillColor('#111827')
+    .text('Fechas del Préstamo', { underline: true });
+  doc.moveDown(0.3);
 
-    // ------------------- Mensaje final -------------------
-    doc
-      .fontSize(12)
-      .fillColor('#064E3B') // verde oscuro
-      .text('El socio se compromete a devolver el libro en la fecha establecida, cuidando su integridad y estado.', { align: 'justify' });
+  doc.fontSize(12);
+  doc.text(`Fecha de inicio: ${prestamo.fechaInicio.toLocaleDateString()}`);
+  doc.text(`Fecha de vencimiento: ${prestamo.fechaVencimiento.toLocaleDateString()}`);
+  if (prestamo.fechaDevolucion) {
+    doc.text(`Fecha de devolución: ${prestamo.fechaDevolucion.toLocaleDateString()}`);
+  }
+  doc.moveDown();
 
-    doc.moveDown(2);
+  // ------------------- Mensaje final -------------------
+  doc
+    .fontSize(12)
+    .fillColor('#064E3B')
+    .text('El socio se compromete a devolver el libro en la fecha establecida, cuidando su integridad y estado.', { align: 'justify' });
 
-    // ------------------- Pie de página -------------------
-    doc
-      .fontSize(10)
-      .fillColor('#6B7280')
-      .text(`Generado automáticamente por el sistema Lecturopolis | Fecha: ${new Date().toLocaleDateString()}`, { align: 'center' });
+  doc.moveDown(2);
 
-    doc.end();
+  // ------------------- Pie de página -------------------
+  doc
+    .fontSize(10)
+    .fillColor('#6B7280')
+    .text(`Generado automáticamente por el sistema Lecturopolis | Fecha: ${new Date().toLocaleDateString()}`, { align: 'center' });
 
-    return pdfPath;
+  doc.end();
+
+  // ✅ Esperar hasta que el archivo termine de escribirse
+  await new Promise((resolve, reject) => {
+    stream.on('finish', resolve);
+    stream.on('error', reject);
+  });
+
+  return pdfPath;
 }
+
+export default generarActaPrestamoExistente;
 
 async function obtenerTodosLosPrestamos() {
     return await Prestamo.findAll({
