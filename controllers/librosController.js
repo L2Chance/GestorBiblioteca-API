@@ -4,11 +4,8 @@ const protect = require('../service/authMiddleware');
 const libroService = require('../service/libroService');
 
 const router = express.Router();
-
-// Configuración de multer (archivos temporales en /tmp)
 const upload = multer({ dest: 'tmp/' });
 
-// Todas las rutas requieren bibliotecario
 router.use(protect);
 
 router.get('/', async (req, res) => {

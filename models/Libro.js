@@ -28,6 +28,10 @@ module.exports = (sequelize) => {
         cover_url: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        cover_public_id: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     });
 

@@ -6,14 +6,15 @@ const libroService = {
   crearLibro: async (data, file) => {
     try {
       let cover_url = null;
+      let cover_public_id = null;
 
       if (file) {
         const uploadResult = await cloudinary.uploader.upload(file.path, {
           folder: 'libros'
         });
         cover_url = uploadResult.secure_url;
+        cover_public_id = uploadResult.public_id;
 
-        // Borrar el archivo temporal subido con multer
         fs.unlinkSync(file.path);
       }
 
@@ -22,7 +23,8 @@ const libroService = {
         autor: data.autor,
         ISBN: data.ISBN,
         estado: data.estado || 'Disponible',
-        cover_url
+        cover_url,
+        cover_public_id
       });
 
       return libro;
@@ -37,15 +39,16 @@ const libroService = {
       if (!libro) throw new Error('Libro no encontrado');
 
       if (file) {
-        if (libro.cover_url) {
-          const publicId = libro.cover_url.split('/').pop().split('.')[0];
-          await cloudinary.uploader.destroy(`libros/${publicId}`);
+        if (libro.cover_public_id) {
+          await cloudinary.uploader.destroy(libro.cover_public_id);
         }
 
         const uploadResult = await cloudinary.uploader.upload(file.path, {
           folder: 'libros'
         });
         data.cover_url = uploadResult.secure_url;
+        data.cover_public_id = uploadResult.public_id;
+
         fs.unlinkSync(file.path);
       }
 
@@ -61,9 +64,8 @@ const libroService = {
       const libro = await Libro.findByPk(id);
       if (!libro) throw new Error('Libro no encontrado');
 
-      if (libro.cover_url) {
-        const publicId = libro.cover_url.split('/').pop().split('.')[0];
-        await cloudinary.uploader.destroy(`libros/${publicId}`);
+      if (libro.cover_public_id) {
+        await cloudinary.uploader.destroy(libro.cover_public_id);
       }
 
       await libro.destroy();
