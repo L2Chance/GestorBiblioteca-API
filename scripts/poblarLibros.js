@@ -15,7 +15,7 @@ async function poblarLibros(busqueda = 'fantasy', cantidad = 10) {
       const isbn = item.isbn ? item.isbn[0] : null;
       const estado = 'Disponible';
 
-      // 🧠 Determinar la mejor URL de cover disponible
+      // Determinar la mejor URL de cover disponible
       let cover_url = null;
       if (item.cover_i) {
         cover_url = `https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`;
@@ -26,7 +26,14 @@ async function poblarLibros(busqueda = 'fantasy', cantidad = 10) {
       // Evitar duplicados usando ISBN si lo hay, si no, usar título como fallback
       await Libro.findOrCreate({
         where: isbn ? { ISBN: isbn } : { titulo },
-        defaults: { titulo, autor, estado, cover_url, ISBN: isbn || `NO-ISBN-${Math.random()}` }
+        defaults: { 
+          titulo, 
+          autor, 
+          estado, 
+          cover_url, 
+          ISBN: isbn || `NO-ISBN-${Math.random()}`, 
+          cover_public_id: null // Importante para compatibilidad con Cloudinary
+        }
       });
     }
 
@@ -37,4 +44,3 @@ async function poblarLibros(busqueda = 'fantasy', cantidad = 10) {
 }
 
 module.exports = poblarLibros;
-
