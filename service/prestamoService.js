@@ -7,7 +7,7 @@ const path = require('path');
 
 const manageTransaction = (callback) => sequelize.transaction(callback);
 
-async function registrarPrestamo(socioId, libroId) {
+async function registrarPrestamo(socioId, libroId, fechaVencimientoElegida) {
     return manageTransaction(async (t) => {
         const socio = await Socio.findByPk(socioId, { transaction: t });
         const libro = await Libro.findByPk(libroId, { transaction: t });
@@ -29,10 +29,16 @@ async function registrarPrestamo(socioId, libroId) {
         });
         if (prestamoActivo) throw new Error('El libro ya está prestado.');
 
-        // Calcular fechas
         const fechaInicio = new Date();
-        const fechaVencimiento = new Date();
-        fechaVencimiento.setDate(fechaInicio.getDate() + 15);
+
+        // Validamos la fecha elegida
+        const fechaVencimiento = new Date(fechaVencimientoElegida);
+        if (isNaN(fechaVencimiento)) {
+            throw new Error('La fecha de vencimiento no es válida.');
+        }
+        if (fechaVencimiento <= fechaInicio) {
+            throw new Error('La fecha de vencimiento debe ser mayor a la fecha de inicio.');
+        }
 
         // Crear préstamo
         const nuevoPrestamo = await Prestamo.create({
@@ -44,16 +50,16 @@ async function registrarPrestamo(socioId, libroId) {
             devuelto: false
         }, { transaction: t });
 
-        // Actualizar estado del libro a Prestado
+        // Actualizar estado del libro
         await libro.update({ estado: 'Prestado' }, { transaction: t });
 
         // Generar acta PDF
-        await nuevoPrestamo.reload({ 
+        await nuevoPrestamo.reload({
             include: [
-                { model: Libro, as: 'libro' }, 
+                { model: Libro, as: 'libro' },
                 { model: Socio, as: 'socio' }
-            ], 
-            transaction: t 
+            ],
+            transaction: t
         });
 
         const rutaPDF = generarActaPrestamo(nuevoPrestamo);
