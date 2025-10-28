@@ -12,19 +12,26 @@ router.use(protect);
 // -----------------------------------------------------------
 router.post('/prestamos', async (req, res) => {
   try {
-    const { LibroId, SocioId } = req.body;
-    const { prestamo, actaPDF } = await prestamoService.registrarPrestamo(SocioId, LibroId);
+    const { LibroId, SocioId, fechaVencimiento } = req.body;
+
+    const { prestamo, actaPDF } = await prestamoService.registrarPrestamo(
+      SocioId,
+      LibroId,
+      fechaVencimiento
+    );
 
     res.status(201).json({ 
-        message: 'Préstamo creado con éxito', 
-        prestamo,
-        actaPDF 
+      message: 'Préstamo creado con éxito',
+      prestamo,
+      actaPDF
     });
+
   } catch (err) {
     console.error(err);
     res.status(400).json({ message: err.message });
   }
 });
+
 
 // -----------------------------------------------------------
 // PUT /prestamos/:id/devolver → Registrar devolución
